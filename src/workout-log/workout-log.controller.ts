@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { WorkoutLogService } from './workout-log.service';
 import { CreateWorkoutLogDto } from './dto/create-workout-log.dto';
 import { UpdateWorkoutLogDto } from './dto/update-workout-log.dto';
 
+@UseGuards()
 @Controller('workout-logs')
 export class WorkoutLogController {
   constructor(private readonly workoutLogService: WorkoutLogService) {}

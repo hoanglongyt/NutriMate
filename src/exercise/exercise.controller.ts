@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe } from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, UseGuards } from "@nestjs/common";
 import { ExerciseService } from './exercise.service';
 import { CreateExerciseDto } from './dto/create-exercise.dto';
 import { UpdateExerciseDto } from './dto/update-exercise.dto';
 
+@UseGuards()
 @Controller('exercises')
 export class ExerciseController {
   constructor(private readonly exerciseService: ExerciseService) {}

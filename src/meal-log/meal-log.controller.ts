@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { MealLogService } from './meal-log.service';
 import { CreateMealLogDto } from './dto/create-meal-log.dto';
 import { UpdateMealLogDto } from './dto/update-meal-log.dto';
 
+@UseGuards()
 @Controller('meal-logs')
 export class MealLogController {
   constructor(private readonly mealLogService: MealLogService) {}
