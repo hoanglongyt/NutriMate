@@ -20,5 +20,5 @@
     "removeComments": true,
     "noFallthroughCasesInSwitch": false
   },
-  "include": ["src", "prisma"]
+  "include": ["src", "src/prisma", "test/app.controller.spec.ts"]
 }
