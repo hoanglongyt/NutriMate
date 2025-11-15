@@ -4,48 +4,68 @@ import dayjs from 'dayjs';
 
 @Injectable()
 export class DashBoardService {
-    constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {}
 
-    // get all information in 1 day (today is a default)
-    async getDailySummary(userId: string, date: Date = new Date()) {
+  // get all information in 1 day (today is a default)
+  async getDailySummary(userId: string, date: Date = new Date()) {
+    const startOfDay = dayjs(date).startOf('day').toDate();
+    const endOfDay = dayjs(date).endOf('day').toDate();
 
-        const startOfDay = dayjs(date).startOf('day').toDate();
-        const endOfDay = dayjs(date).endOf('day').toDate();
+    // Chạy 4 truy vấn song song để tăng hiệu suất
+    const [mealLogs, workoutLogs, profile, recommendation] =
+      await Promise.all([
+        this.prisma.mealLog.findMany({
+          where: {
+            userId: userId,
+            loggedAt: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+          },
+        }),
 
-        // [Logic Calories Consumed và Burned giữ nguyên]
-        const mealLogs = await this.prisma.mealLog.findMany({ /* ... */ });
-        const caloriesConsumed = mealLogs.reduce((sum, log) => sum + (log.totalCalories || 0), 0);
+        this.prisma.workoutLog.findMany({
+          where: {
+            userId: userId,
+            loggedAt: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+          },
+        }),
 
-        const workoutLogs = await this.prisma.workoutLog.findMany({ /* ... */ });
-        const caloriesBurned = workoutLogs.reduce((sum, log) => sum + (log.totalCaloriesBurned || 0), 0);
-        
-        // Tính Net Calories (đã được làm đúng ở trên)
-        const netCalories = caloriesConsumed - caloriesBurned; 
+        this.prisma.userProfile.findUnique({ where: { userId } }),
 
-        // get profile and give recommendation
-        const profile = await this.prisma.userProfile.findUnique({ where: {userId} });
-        const recommendation = await this.prisma.recommendation.findFirst({
-            where: { userId },
-            orderBy: { generatedAt: 'desc' },
-        });
-        
-        // return to synthetic information
-        return {
-            date: dayjs(date).format('YYYY-MM-DD'),
-            caloriesConsumed: parseFloat(caloriesConsumed.toFixed(2)),
-            caloriesBurned: parseFloat(caloriesBurned.toFixed(2)),
-            
-            netCalories: parseFloat(netCalories.toFixed(2)), 
-            
-            // target infomation (if you have)
-            targetCalories: recommendation?.recommendedCalories || null,
+        this.prisma.recommendation.findFirst({
+          where: { userId },
+          orderBy: { generatedAt: 'desc' },
+        }),
+      ]);
 
-            // remaining calories
-            remainingCalories: recommendation 
-                ? parseFloat(((recommendation.recommendedCalories ?? 0) - netCalories).toFixed(2)) 
-                : null,
-            
-            bmi: profile?.bmi || null,
-        }
-    }
+    const caloriesConsumed = mealLogs.reduce(
+      (sum, log) => sum + (log.totalCalories || 0), 
+      0,
+    );
+
+    const caloriesBurned = workoutLogs.reduce(
+      (sum, log) => sum + (log.caloriesBurned || 0), 
+      0,
+    );
+
+    const netCalories = caloriesConsumed - caloriesBurned;
+    const targetCalories = recommendation?.recommendedCalories || null;
+
+    // return to synthetic information
+    return {
+      date: dayjs(date).format('YYYY-MM-DD'),
+      caloriesConsumed: parseFloat(caloriesConsumed.toFixed(2)),
+      caloriesBurned: parseFloat(caloriesBurned.toFixed(2)),
+      netCalories: parseFloat(netCalories.toFixed(2)),
+      targetCalories: targetCalories,
+      remainingCalories: targetCalories
+        ? parseFloat((targetCalories - netCalories).toFixed(2))
+        : null,
+      bmi: profile?.bmi || null,
+    };
+  }
 }
