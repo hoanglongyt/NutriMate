@@ -4,9 +4,8 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from 'src/prisma/prisma.services'; 
 import { ConfigService } from '@nestjs/config';
 
-// Định nghĩa kiểu dữ liệu cho payload giải mã từ JWT
 interface JwtPayload {
-    sub: string; // ID người dùng (Subject)
+    sub: string; 
     email: string;
 }
 

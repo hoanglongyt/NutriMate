@@ -1,57 +1,69 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateMealLogDto } from './dto/create-meal-log.dto';
 import { UpdateMealLogDto } from './dto/update-meal-log.dto';
-import { PrismaService } from 'src/prisma/prisma.services'; 
+import { PrismaService } from 'src/prisma/prisma.services';
 
 @Injectable()
 export class MealLogService {
   constructor(private prisma: PrismaService) {}
 
-  // POST: Tạo một nhật ký bữa ăn mới
-  async create(createMealLogDto: CreateMealLogDto) {
-    const { foodId, quantity, ...rest } = createMealLogDto;
+  async create(userId: string, createMealLogDto: CreateMealLogDto) {
+    const { foodId, quantity, mealType } = createMealLogDto;
 
     // find food information
     const food = await this.prisma.food.findUnique({
       where: { id: foodId },
-      select: { calories: true }
+      select: { calories: true },
     });
 
-    if(!food) {
+    if (!food) {
       throw new NotFoundException(`Food with ID ${foodId} not found.`);
     }
 
     // Calories Calculate
-    const calculatedCalories = (food.calories / 100) * quantity;    
-
+    const calculatedCalories = (food.calories / 100) * quantity;
 
     return this.prisma.mealLog.create({
-      data: { ...rest, foodId, quantity, totalCalories: calculatedCalories,},
+      data: {
+        userId: userId, 
+        foodId: foodId,
+        quantity: quantity,
+        mealType: mealType,
+        totalCalories: calculatedCalories, 
+      },
     });
   }
 
-  // GET: Lấy tất cả nhật ký bữa ăn
-  findAll() {
-    return this.prisma.mealLog.findMany();
-  }
-
-  // GET /:id: Lấy một nhật ký cụ thể
-  findOne(id: string) {
-    return this.prisma.mealLog.findUnique({
-      where: { id },
+  findAll(userId: string) {
+    return this.prisma.mealLog.findMany({
+      where: { userId },
+      orderBy: { loggedAt: 'desc' }, 
     });
   }
 
-  // PATCH /:id: Cập nhật nhật ký
-  update(id: string, updateMealLogDto: UpdateMealLogDto) {
+  async findOne(id: string, userId: string) {
+    const log = await this.prisma.mealLog.findFirst({
+      where: { id, userId }, 
+    });
+
+    if (!log) {
+      throw new NotFoundException(`Meal log not found.`);
+    }
+    return log;
+  }
+
+  async update(id: string, userId: string, updateMealLogDto: UpdateMealLogDto) {
+    const existingLog = await this.findOne(id, userId);
+
     return this.prisma.mealLog.update({
-      where: { id },
+      where: { id }, 
       data: updateMealLogDto,
     });
   }
 
-  // DELETE /:id: Xóa nhật ký
-  remove(id: string) {
+  async remove(id: string, userId: string) {
+    const existingLog = await this.findOne(id, userId);
+
     return this.prisma.mealLog.delete({
       where: { id },
     });
