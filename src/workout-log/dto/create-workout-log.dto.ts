@@ -1,21 +1,11 @@
-import { IsNumber, IsNotEmpty, IsUUID, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsUUID, Min } from 'class-validator';
 
 export class CreateWorkoutLogDto {
-    @IsNotEmpty()
-    @IsUUID()
-    userId!: string;
+  @IsUUID('4', { message: 'exerciseId phải là một UUID hợp lệ.' })
+  @IsNotEmpty({ message: 'exerciseId không được để trống.' })
+  exerciseId!: string; 
 
-    @IsNotEmpty()
-    @IsUUID() 
-    exerciseId!: string; 
-
-    @IsNumber()
-    durationMin!: number; 
-
-    @IsNumber()
-    caloriesBurned!: number; 
-
-    @IsOptional()
-    @IsNumber()
-    totalCaloriesBurned?: number;
+  @IsNumber({}, { message: 'Thời lượng phải là một con số.' })
+  @Min(1, { message: 'Thời lượng phải ít nhất là 1 phút.' })
+  durationMin!: number; 
 }

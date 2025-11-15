@@ -1,29 +1,53 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.services';
-import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 
 @Injectable()
 export class UserProfileService {
   constructor(private prisma: PrismaService) {}
 
-  create(data: CreateUserProfileDto) {
-    return this.prisma.userProfile.create({ data });
+  async updateProfile(userId: string, dto: UpdateUserProfileDto) {
+    const { weightKg, heightCm, ...rest } = dto;
+
+    let bmi: number | undefined = undefined;
+
+    if (weightKg && heightCm) {
+      // Công thức BMI = Cân nặng (kg) / (Chiều cao (m) * Chiều cao (m))
+      const heightInMeters = heightCm / 100;
+      bmi = parseFloat(
+        (weightKg / (heightInMeters * heightInMeters)).toFixed(2),
+      );
+    }
+
+    return this.prisma.userProfile.upsert({
+      where: { userId: userId }, 
+      create: {
+        // Nếu tạo mới
+        userId: userId,
+        weightKg: weightKg,
+        heightCm: heightCm,
+        ...rest,
+        bmi: bmi, // Lưu BMI đã tính
+      },
+      update: {
+        // Nếu cập nhật
+        weightKg: weightKg,
+        heightCm: heightCm,
+        ...rest,
+        bmi: bmi, // Cập nhật BMI
+      },
+    });
   }
 
-  findAll() {
-    return this.prisma.userProfile.findMany({ include: { user: true } });
+  async getProfile(userId: string) {
+    const profile = await this.prisma.userProfile.findUnique({
+      where: { userId: userId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Chưa có hồ sơ, vui lòng cập nhật.');
+    }
+    return profile;
   }
 
-  findOne(id: string) {
-    return this.prisma.userProfile.findUnique({ where: { id }, include: { user: true } });
-  }
-
-  update(id: string, data: UpdateUserProfileDto) {
-    return this.prisma.userProfile.update({ where: { id }, data });
-  }
-
-  remove(id: string) {
-    return this.prisma.userProfile.delete({ where: { id } });
-  }
 }

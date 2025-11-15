@@ -22,7 +22,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  // Phương thức này được gọi sau khi token được giải mã thành công
   async validate(payload: JwtPayload) {
     // 1. Tìm người dùng trong DB dựa trên ID (sub)
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });

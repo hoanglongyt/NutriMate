@@ -1,58 +1,72 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateWorkoutLogDto } from './dto/create-workout-log.dto';
 import { UpdateWorkoutLogDto } from './dto/update-workout-log.dto';
-import { PrismaService } from 'src/prisma/prisma.services'; 
+import { PrismaService } from 'src/prisma/prisma.services';
 
 @Injectable()
 export class WorkoutLogService {
   constructor(private prisma: PrismaService) {}
 
-  // POST: Tạo một nhật ký tập luyện mới
-  async create(createWorkoutLogDto: CreateWorkoutLogDto) {
-    const { exerciseId, durationMin, ...rest } = createWorkoutLogDto;
+  async create(userId: string, createWorkoutLogDto: CreateWorkoutLogDto) {
+    const { exerciseId, durationMin } = createWorkoutLogDto;
 
     const exercise = await this.prisma.exercise.findUnique({
-        where: { id: exerciseId },
-        select: { caloriesBurnedPerHour: true } 
+      where: { id: exerciseId },
+      select: { caloriesBurnedPerHour: true },
     });
 
     if (!exercise) {
-        throw new NotFoundException(`Exercise with ID ${exerciseId} not found.`);
+      throw new NotFoundException(`Exercise with ID ${exerciseId} not found.`);
     }
 
-    // Calories Burned = Calories per hour * (Minutes Time / 60)
     const totalCaloriesBurned = (exercise.caloriesBurnedPerHour / 60) * durationMin;
 
-
     return this.prisma.workoutLog.create({
-      data: { ...rest, exerciseId, durationMin, totalCaloriesBurned: totalCaloriesBurned },
+      data: {
+        userId: userId, 
+        exerciseId: exerciseId,
+        durationMin: durationMin,
+        caloriesBurned: totalCaloriesBurned, 
+      },
     });
   }
 
-  // GET: Lấy tất cả nhật ký tập luyện
-  findAll() {
-    return this.prisma.workoutLog.findMany();
-  }
-
-  // GET /:id: Lấy một nhật ký cụ thể
-  findOne(id: string) {
-    return this.prisma.workoutLog.findUnique({
-      where: { id },
+  findAll(userId: string) {
+    return this.prisma.workoutLog.findMany({
+      where: { userId: userId }, 
+      orderBy: { loggedAt: 'desc' },
     });
   }
 
-  // PATCH /:id: Cập nhật nhật ký
-  update(id: string, updateWorkoutLogDto: UpdateWorkoutLogDto) {
+  async findOne(id: string, userId: string) {
+    const log = await this.prisma.workoutLog.findFirst({
+      where: { id: id, userId: userId },
+    });
+
+    if (!log) {
+      throw new NotFoundException('Workout log not found.');
+    }
+    return log;
+  }
+
+  async update(
+    id: string,
+    userId: string,
+    updateWorkoutLogDto: UpdateWorkoutLogDto,
+  ) {
+    await this.findOne(id, userId);
+
     return this.prisma.workoutLog.update({
-      where: { id },
+      where: { id: id },
       data: updateWorkoutLogDto,
     });
   }
 
-  // DELETE /:id: Xóa nhật ký
-  remove(id: string) {
+  async remove(id: string, userId: string) {
+    await this.findOne(id, userId);
+
     return this.prisma.workoutLog.delete({
-      where: { id },
+      where: { id: id },
     });
   }
 }

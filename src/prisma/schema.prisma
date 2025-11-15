@@ -78,8 +78,6 @@ model WorkoutLog {
   caloriesBurned   Float
   loggedAt         DateTime @default(now())
 
-  totalCaloriesBurned   Float?
-
   user             User       @relation(fields: [userId], references: [id])
   exercise         Exercise   @relation(fields: [exerciseId], references: [id])
 }
