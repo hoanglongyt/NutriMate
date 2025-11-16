@@ -1,35 +1,28 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { FoodService } from './food.service';
-import { CreateFoodDto } from './dto/create-food.dto';
-import { UpdateFoodDto } from './dto/update-food.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { IsNotEmpty, IsString } from 'class-validator';
 
-@UseGuards()
-@Controller('foods') 
+export class SearchFoodDto {
+  @IsString()
+  @IsNotEmpty({ message: 'Từ khóa tìm kiếm (q) không được để trống.' })
+  q!: string;
+}
+
+@Controller('food')
+@UseGuards(JwtAuthGuard)
 export class FoodController {
-    constructor(private readonly foodService: FoodService) {}
+  constructor(private readonly foodService: FoodService) {}
 
-    @Post()
-    create(@Body() data: CreateFoodDto) {
-        return this.foodService.create(data);
-    }
+  @Get('search')
+  async hybridSearch(@Query() query: SearchFoodDto) {
+    const searchQuery = query.q;
 
-    @Get()
-    findAll() {
-        return this.foodService.findAll();
-    }
+    const [localResults, externalResults] = await Promise.all([
+      this.foodService.searchLocalFood(searchQuery),
+      this.foodService.searchFoodFromUSDA(searchQuery),
+    ]);
 
-    @Get(':id')
-    findOne(@Param('id') id: string ) {
-        return this.foodService.findOne(id);
-    }
-
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() data: UpdateFoodDto) {
-        return this.foodService.update(id, data);
-    }
-
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.foodService.remove(id);
-    }
+    return [...localResults, ...externalResults];
+  }
 }

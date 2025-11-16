@@ -21,7 +21,7 @@ export class MealLogService {
     }
 
     // Calories Calculate
-    const calculatedCalories = (food.calories / 100) * quantity;
+    const calculatedCalories = (food.calories ?? 0 / 100) * quantity;
 
     return this.prisma.mealLog.create({
       data: {

@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,86 +11,122 @@ datasource db {
 }
 
 model User {
-  id            String       @id @default(uuid())
-  email         String       @unique
+  id            String    @id @default(uuid())
+  email         String    @unique
   passwordHash  String
   fullName      String
   gender        String?
   dateOfBirth   DateTime?
-  createdAt     DateTime     @default(now())
+  createdAt     DateTime  @default(now())
 
-  profile       UserProfile?
-  mealLogs      MealLog[]
-  workoutLogs   WorkoutLog[]
+  profile         UserProfile?
+  mealLogs        MealLog[]
+  workoutLogs     WorkoutLog[]
   recommendations Recommendation[]
 }
 
 model UserProfile {
-  id              String   @id @default(uuid())
-  userId          String   @unique
-  heightCm        Float?
-  weightKg        Float?
-  targetWeightKg  Float?
-  activityLevel   String?
-  bmi             Float?
-  updatedAt       DateTime @updatedAt
+  id             String        @id @default(uuid())
+  userId         String        @unique
+  heightCm       Float?
+  weightKg       Float?
+  targetWeightKg Float?
+  activityLevel  ActivityLevel? 
+  bmi            Float?
+  updatedAt      DateTime      @updatedAt
 
-  user            User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 }
 
+// === MODEL FOOD ĐÃ ĐƯỢC NÂNG CẤP CHI TIẾT ===
 model Food {
-  id           String   @id @default(uuid())
-  name         String   @unique
-  calories     Float
-  protein      Float?
-  carbs        Float?
-  fat          Float?
-  portionSize  String?
+  id     String @id @default(uuid())
+  name   String @unique
+  source String @default("vietnam_nin")
+  unit   String @default("100g")
 
-  mealLogs     MealLog[]
+  // === Macronutrients (Đa lượng) ===
+  calories Float? // Kcal
+  protein  Float? // g
+  fat      Float? // g
+  carbs    Float? // g
+
+  // === Chi tiết (Detail Macros) ===
+  fiber        Float? // Chất xơ (g)
+  sugar        Float? // Đường (g)
+  saturatedFat Float? // Chất béo bão hòa (g)
+  cholesterol  Float? // mg
+
+  // === Khoáng chất (Minerals) ===
+  sodium    Float? // Natri (mg)
+  potassium Float? // Kali (mg)
+  calcium   Float? // Canxi (mg)
+  iron      Float? // Sắt (mg)
+  magnesium Float? // Magie (mg)
+
+  // === Vitamins ===
+  vitaminA Float? // µg (microgram)
+  vitaminC Float? // mg
+  vitaminD Float? // µg (microgram)
+  vitaminE Float? // mg
+  vitaminK Float? // µg (microgram)
+  vitaminB6 Float? // mg
+  vitaminB12 Float? // µg (microgram)
+
+  // Quan hệ
+  mealLogs MealLog[]
+
+  @@index([name])
 }
 
 model MealLog {
-  id         String   @id @default(uuid())
-  userId     String
-  foodId     String
-  quantity   Float
-  mealType   String
-  loggedAt   DateTime @default(now())
+  id            String   @id @default(uuid())
+  userId        String
+  foodId        String
+  quantity      Float
+  mealType      String
+  loggedAt      DateTime @default(now())
+  totalCalories Float? 
 
-  totalCalories    Float?   
-
-  user       User     @relation(fields: [userId], references: [id])
-  food       Food     @relation(fields: [foodId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+  food Food @relation(fields: [foodId], references: [id])
 }
 
 model Exercise {
-  id                      String   @id @default(uuid())
-  name                    String   @unique
-  caloriesBurnedPerHour   Float
-  type                    String?
-
-  workoutLogs             WorkoutLog[]
+  id                    String       @id @default(uuid())
+  name                  String       @unique
+  caloriesBurnedPerHour Float
+  type                  String?
+  
+  workoutLogs           WorkoutLog[]
 }
 
 model WorkoutLog {
-  id               String   @id @default(uuid())
-  userId           String
-  exerciseId       String
-  durationMin      Float
-  caloriesBurned   Float
-  loggedAt         DateTime @default(now())
+  id             String   @id @default(uuid())
+  userId         String
+  exerciseId     String
+  durationMin    Float
+  caloriesBurned Float 
+  loggedAt       DateTime @default(now())
 
-  user             User       @relation(fields: [userId], references: [id])
-  exercise         Exercise   @relation(fields: [exerciseId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
 }
 
 model Recommendation {
-  id                   String   @id @default(uuid())
-  userId               String
-  recommendedCalories  Float?
-  recommendedExercise  String?
-  generatedAt          DateTime @default(now())
+  id                  String   @id @default(uuid())
+  userId              String
+  recommendedCalories Float?
+  recommendedExercise String?
+  generatedAt         DateTime @default(now())
 
-  user                 User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+}
+
+enum ActivityLevel {
+  SEDENTARY // Ít vận động
+  LIGHT // Vận động nhẹ
+  MODERATE // Vận động vừa
+  ACTIVE // Năng động
+  VERY_ACTIVE // Rất năng động
 }

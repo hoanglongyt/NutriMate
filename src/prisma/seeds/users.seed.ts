@@ -1,29 +1,16 @@
-import * as bcrypt from 'bcrypt';
-
-export const userSeedData = async () => {
-  const passwordHash = await bcrypt.hash('Hoanglong123', 10);
-
-  return [
-    {
-      email: 'long@example.com',
-      passwordHash,
-      fullName: 'Lý Hoàng Long',
-      gender: 'male',
-      dateOfBirth: new Date('2001-05-20'),
-    },
-    {
-      email: 'thao@example.com',
-      passwordHash,
-      fullName: 'Nguyễn Thị Thảo',
-      gender: 'female',
-      dateOfBirth: new Date('2002-08-12'),
-    },
-    {
-      email: 'minh@example.com',
-      passwordHash,
-      fullName: 'Trần Văn Minh',
-      gender: 'male',
-      dateOfBirth: new Date('2000-11-05'),
-    },
-  ];
-};
+export const userSeedData = async () => [
+  {
+    email: 'user1@nutrimate.com',
+    passwordHash: 'password123', 
+    fullName: 'Người Dùng Một',
+    gender: 'Nam',
+    dateOfBirth: new Date('1990-01-15'),
+  },
+  {
+    email: 'user2@nutrimate.com',
+    passwordHash: 'password123',
+    fullName: 'Người Dùng Hai',
+    gender: 'Nữ',
+    dateOfBirth: new Date('1995-05-20'),
+  },
+];
