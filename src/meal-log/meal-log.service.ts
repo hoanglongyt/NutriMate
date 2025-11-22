@@ -34,10 +34,11 @@ export class MealLogService {
     });
   }
 
-  findAll(userId: string) {
+ findAll(userId: string) {
     return this.prisma.mealLog.findMany({
       where: { userId },
-      orderBy: { loggedAt: 'desc' }, 
+      include: { food: true }, 
+      orderBy: { loggedAt: 'desc' },
     });
   }
 
