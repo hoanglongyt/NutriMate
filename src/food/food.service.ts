@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.services';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, retry } from 'rxjs'; 
 
 @Injectable()
 export class FoodService {
@@ -15,7 +15,7 @@ export class FoodService {
   ) {}
 
   /**
-   (Đồ ăn Việt Nam)
+   * (Đồ ăn Việt Nam)
    */
   async searchLocalFood(query: string) {
     return this.prisma.food.findMany({
@@ -27,30 +27,52 @@ export class FoodService {
   }
 
   /**
-    (USDA)
+   * (USDA) 
    */
   async searchFoodFromUSDA(query: string) {
     const apiKey = this.configService.get<string>('USDA_API_KEY');
+
     if (!apiKey) {
       this.logger.warn('Không tìm thấy USDA_API_KEY, bỏ qua tìm kiếm USDA.');
       return [];
     }
-    const url = 'https://api.nal.usda.gov/fdc/v1/foods/search';
+
+    const baseUrl = 'https://api.nal.usda.gov/fdc/v1/foods/search';
+
+    const params = new URLSearchParams();
+    params.append('api_key', apiKey);
+    params.append('query', query);
+    params.append('pageSize', '20');
+
+    params.append('dataType', 'Foundation');
+    params.append('dataType', 'SR Legacy');
+    params.append('dataType', 'Branded'); 
+
+    const finalUrl = `${baseUrl}?${params.toString()}`;
+
+    this.logger.log(`🔍 Đang gọi USDA (Query: ${query})`);
+
     try {
       const response = await firstValueFrom(
-        this.httpService.get(url, {
-          params: {
-            api_key: apiKey,
-            query: query,
-            pageSize: 20,
-            dataType: 'Foundation,SR Legacy',
-          },
-        }),
+        this.httpService.get(finalUrl).pipe(
+          retry(1) 
+        )
       );
+
+      if (!response.data || !Array.isArray(response.data.foods)) {
+        this.logger.error('⚠️ Phản hồi USDA không có định dạng JSON/foods mong đợi.');
+        const preview = JSON.stringify(response.data || 'null').substring(0, 100);
+        this.logger.debug(`Data Preview: ${preview}...`);
+        return [];
+      }
+
+      this.logger.log(`✅ USDA Thành công: Tìm thấy ${response.data.foods.length} kết quả`);
+
       const getNutrient = (nutrients: any[], nutrientId: number) => {
         const nutrient = nutrients.find((n) => n.nutrientId === nutrientId);
         return nutrient ? nutrient.value : undefined;
       };
+
       return response.data.foods.map((food: any) => {
         const nutrients = food.foodNutrients || [];
         return {
@@ -80,18 +102,18 @@ export class FoodService {
           vitaminB12: getNutrient(nutrients, 1178),
         };
       });
-    } catch (error) {
-      if (error instanceof Error) {
-        this.logger.error(`Lỗi khi gọi API USDA: ${error.message}`);
-      } else {
-        this.logger.error(`Lỗi không xác định khi gọi API USDA: ${String(error)}`);
+    } catch (error: any) {
+      this.logger.error(`❌ Lỗi khi gọi API USDA: ${error.message}`);
+      if (error.response) {
+        this.logger.error(`👉 Status Code: ${error.response.status}`);
+        this.logger.error(`👉 Response Data: ${JSON.stringify(error.response.data).substring(0, 200)}...`);
       }
       return [];
     }
   }
 
   /**
-   TÌM BẰNG MÃ VẠCH (Open Food Facts)
+   * TÌM BẰNG MÃ VẠCH (Open Food Facts)
    */
   async searchByBarcode(barcode: string) {
     // API Open Food Facts
