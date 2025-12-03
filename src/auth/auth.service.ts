@@ -7,6 +7,8 @@ import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
+import { ConfigService } from '@nestjs/config';
+import { OAuth2Client } from 'google-auth-library';
 import { PrismaService } from '../../src/prisma/prisma.services';
 import { LinkSocialDto } from './dto/link-social.dto';
 import { LoginDto } from './dto/login.dto';
@@ -19,10 +21,17 @@ import { SocialProfilePayload } from './types/social-profile.interface';
 
 @Injectable()
 export class AuthService {
+  private readonly googleClient: OAuth2Client;
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-  ) {}
+    private configService: ConfigService,
+  ) {
+    this.googleClient = new OAuth2Client(
+      this.configService.get<string>('GOOGLE_CLIENT_ID'),
+    );
+  }
 
   async register(dto: RegisterDto) {
     const existingUser = await this.prisma.user.findUnique({
@@ -69,6 +78,40 @@ export class AuthService {
     }
 
     const user = await this.upsertUserFromSocialProfile(provider, profile);
+    return this.buildAuthResponse(user);
+  }
+
+  async verifyGoogleToken(googleIdToken: string) {
+    if (!googleIdToken) {
+      throw new BadRequestException('Google ID token is required');
+    }
+
+    const audience = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    if (!audience) {
+      throw new UnauthorizedException('Google client configuration missing');
+    }
+
+    const ticket = await this.googleClient.verifyIdToken({
+      idToken: googleIdToken,
+      audience,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.sub) {
+      throw new UnauthorizedException('Invalid Google token');
+    }
+
+    const profile: SocialProfilePayload = {
+      provider: SocialProvider.GOOGLE,
+      providerId: payload.sub,
+      email: payload.email ?? undefined,
+      fullName: payload.name ?? undefined,
+    };
+
+    const user = await this.upsertUserFromSocialProfile(
+      SocialProvider.GOOGLE,
+      profile,
+    );
     return this.buildAuthResponse(user);
   }
 

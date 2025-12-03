@@ -45,6 +45,11 @@ export class AuthController {
     return this.authService.handleSocialLogin(SocialProvider.GOOGLE, req.user);
   }
 
+  @Post('google/verify')
+  async verifyGoogleToken(@Body('token') googleIdToken: string) {
+    return this.authService.verifyGoogleToken(googleIdToken);
+  }
+
   @Post('link-social')
   @UseGuards(JwtAuthGuard)
   async linkSocialAccount(
