@@ -11,9 +11,19 @@ import { WorkoutLogModule } from './workout-log/workout-log.module';
 import { MealLogModule } from './meal-log/meal-log.module';
 import { AuthModule } from './auth/auth.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'uploads'),
+      serveRoot: '/uploads',
+      serveStaticOptions: {
+        // This setting prevents the server from looking for index.html
+        index: false,
+      },
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',

@@ -1,6 +1,5 @@
-// file: src/user-profile/user-profile.service.ts
-
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.services';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { RecommendationService } from 'src/calculator/recommendation/recommendation.service';
@@ -10,6 +9,7 @@ export class UserProfileService {
   constructor(
     private prisma: PrismaService,
     private recommendationService: RecommendationService,
+    private configService: ConfigService,
   ) {}
 
   async updateProfile(userId: string, dto: UpdateUserProfileDto) {
@@ -55,7 +55,6 @@ export class UserProfileService {
       throw new NotFoundException('Chưa có hồ sơ, vui lòng cập nhật.');
     }
 
-    // Get user's profile picture URL
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { profilePictureUrl: true },
@@ -69,28 +68,31 @@ export class UserProfileService {
 
   async updateProfilePicture(userId: string, fileUrl: string) {
     try {
+      // Construct full public URL from relative path
+      // fileUrl is expected to be a relative path like '/uploads/profile-pictures/filename.jpg'
+      const baseUrl = this.configService.get<string>('APP_URL') || 
+                     this.configService.get<string>('BASE_URL') ||
+                     `http://localhost:${this.configService.get<number>('PORT') || 3000}`;
+      
+      // Ensure fileUrl starts with '/' for proper URL construction
+      const relativePath = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`;
+      
+      // Construct full public URL
+      const fullPublicUrl = `${baseUrl}${relativePath}`;
+      
       const user = await this.prisma.user.update({
         where: { id: userId },
-        data: { profilePictureUrl: fileUrl },
-        select: {
-          id: true,
-          email: true,
-          fullName: true,
-          profilePictureUrl: true,
-        },
+        data: { profilePictureUrl: fullPublicUrl },
+        select: { 
+          id: true, 
+          email: true, 
+          fullName: true, 
+          profilePictureUrl: true 
+        }, 
       });
+      return user; 
 
-      // Verify the update was successful
-      if (!user.profilePictureUrl || user.profilePictureUrl !== fileUrl) {
-        throw new Error('Database update failed - profilePictureUrl not set correctly');
-      }
-
-      return {
-        message: 'Profile picture updated successfully',
-        profilePictureUrl: user.profilePictureUrl,
-      };
     } catch (error) {
-      // Log the error for debugging
       console.error('Error updating profile picture:', error);
       throw error;
     }

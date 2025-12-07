@@ -31,6 +31,12 @@ export class WorkoutLogController {
     return this.workoutLogService.findAll(userId);
   }
 
+  @Get('today')
+  findToday(@Req() req) {
+    const userId = req.user.id;
+    return this.workoutLogService.findTodayLogs(userId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req) {
     const userId = req.user.id;

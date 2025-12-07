@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateWorkoutLogDto } from './dto/create-workout-log.dto';
 import { UpdateWorkoutLogDto } from './dto/update-workout-log.dto';
 import { PrismaService } from 'src/prisma/prisma.services';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class WorkoutLogService {
@@ -29,12 +30,38 @@ export class WorkoutLogService {
         durationMin: durationMin,
         caloriesBurned: totalCaloriesBurned,
       },
+      include: {
+        exercise: true,
+      },
     });
   }
 
   findAll(userId: string) {
     return this.prisma.workoutLog.findMany({
       where: { userId: userId },
+      orderBy: { loggedAt: 'desc' },
+      include: {
+        exercise: true,
+      },
+    });
+  }
+
+  // Get today's workout logs with exercise info
+  async findTodayLogs(userId: string, date: Date = new Date()) {
+    const startOfDay = dayjs(date).startOf('day').toDate();
+    const endOfDay = dayjs(date).endOf('day').toDate();
+
+    return this.prisma.workoutLog.findMany({
+      where: {
+        userId: userId,
+        loggedAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      include: {
+        exercise: true,
+      },
       orderBy: { loggedAt: 'desc' },
     });
   }
