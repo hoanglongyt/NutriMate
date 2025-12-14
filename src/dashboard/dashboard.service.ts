@@ -66,10 +66,15 @@ export class DashBoardService {
       remainingCalories: parseFloat((targetCalories - netCalories).toFixed(2)),
       bmi: profile?.bmi || null,
 
-      // Trả về Macro đã tính
+      // Trả về Macro đã tính (consumed)
       totalProtein: parseFloat(totalProtein.toFixed(1)),
       totalFat: parseFloat(totalFat.toFixed(1)),
       totalCarbs: parseFloat(totalCarbs.toFixed(1)),
+
+      // Trả về Macro targets từ backend recommendations
+      targetProtein: recommendation?.recommendedProtein || null,
+      targetFat: recommendation?.recommendedFat || null,
+      targetCarbs: recommendation?.recommendedCarbs || null,
     };
   }
 }

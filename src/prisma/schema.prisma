@@ -119,6 +119,9 @@ model Recommendation {
   id                  String   @id @default(uuid())
   userId              String   @unique
   recommendedCalories Float?
+  recommendedProtein  Float?  // gram
+  recommendedFat      Float?  // gram
+  recommendedCarbs    Float?  // gram
   recommendedExercise String?
   generatedAt         DateTime @default(now())
 

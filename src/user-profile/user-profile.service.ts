@@ -41,7 +41,16 @@ export class UserProfileService {
       },
     });
 
-    this.recommendationService.generateRecommendation(userId);
+    // Regenerate recommendation sau khi cập nhật profile (đặc biệt quan trọng khi thay đổi weight/targetWeight/activityLevel)
+    // QUAN TRỌNG: Phải await để đảm bảo recommendation được cập nhật TRƯỚC KHI trả response
+    // Nếu không await, frontend có thể fetch summary trước khi recommendation được tạo xong
+    try {
+      await this.recommendationService.generateRecommendation(userId);
+      console.log(`✅ Recommendation đã được regenerate cho user ${userId}`);
+    } catch (error) {
+      // Log lỗi nhưng không throw để không ảnh hưởng đến việc update profile
+      console.error('❌ Lỗi khi regenerate recommendation:', error);
+    }
 
     return updatedProfile;
   }
